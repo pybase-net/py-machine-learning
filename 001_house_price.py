@@ -13,12 +13,14 @@ def compute_cost(x, y, w, b):
 
 # === Load dataset ===
 data = np.loadtxt('./001_house_price/dataset.csv', delimiter=',', skiprows=1)
-x_train = data[:, :-1].flatten()  # Ensure 1D
-y_train = data[:, -1]
+# x_train = data[:, :-1].flatten()  # Ensure 1D
+# y_train = data[:, -1]
+x_train = np.array([1.0, 2.0])  # (size in 1000 square feet)
+y_train = np.array([300.0, 500.0])  # (price in 1000s of dollars)
 
 # 🔍 Narrow and high-precision search range
-w_values = np.arange(0, 2, 0.001)
-b_values = np.arange(0, 2, 0.001)
+w_values = np.arange(0, 400, 10)
+b_values = np.arange(0, 200, 10)
 
 min_cost = float('inf')
 best_w, best_b = 0, 0
