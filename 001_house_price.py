@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from lab_utils_uni import plt_stationary, plt_stationary_fixed_point, plt_update_onclick, soup_bowl_actual_cost
+
 # === Replace this with the actual function ===
 
 
@@ -11,26 +13,61 @@ def compute_cost(x, y, w, b):
     return cost
 
 
+def compute_cost_vectorized(x, y, W, B):
+    """
+    x: shape (m,)
+    y: shape (m,)
+    W, B: shape (n, k) from meshgrid
+    Output: cost matrix of shape (n, k)
+    """
+    m = x.shape[0]
+    # Expand x and y for broadcasting: (m, 1, 1)
+    x = x[:, np.newaxis, np.newaxis]
+    y = y[:, np.newaxis, np.newaxis]
+
+    # Broadcasted prediction: shape (m, n, k)
+    predictions = W[np.newaxis, :, :] * x + B[np.newaxis, :, :]
+    errors = predictions - y
+    squared_errors = errors ** 2
+    cost_matrix = (1 / (2 * m)) * np.sum(squared_errors, axis=0)
+    return cost_matrix
+
+
 # === Load dataset ===
 data = np.loadtxt('./001_house_price/dataset.csv', delimiter=',', skiprows=1)
-# x_train = data[:, :-1].flatten()  # Ensure 1D
-# y_train = data[:, -1]
-x_train = np.array([1.0, 2.0])  # (size in 1000 square feet)
-y_train = np.array([300.0, 500.0])  # (price in 1000s of dollars)
+x_train = data[:, :-1].flatten()  # Ensure 1D
+y_train = data[:, -1]
+# x_train = np.array([1.0, 1.7, 2.0, 2.5, 3.0, 3.2])
+# y_train = np.array([250, 300, 480,  430,   630, 730,])
 
 # 🔍 Narrow and high-precision search range
-w_values = np.arange(0, 400, 10)
-b_values = np.arange(0, 200, 10)
+# w_values = np.arange(0, 400, 10)
+# b_values = np.arange(0, 200, 10)
 
-min_cost = float('inf')
-best_w, best_b = 0, 0
+w_values = np.arange(0, 1, 0.001)  # Narrower range for w
+b_values = np.arange(0, 1, 0.001)
 
-for w in w_values:
-    for b in b_values:
-        cost = compute_cost(x_train, y_train, w, b)
-        if cost < min_cost:
-            min_cost = cost
-            best_w, best_b = w, b
+# min_cost = float('inf')
+# best_w, best_b = 0, 0
+
+# for w in w_values:
+#     for b in b_values:
+#         cost = compute_cost(x_train, y_train, w, b)
+#         if cost < min_cost:
+#             min_cost = cost
+#             best_w, best_b = w, b
+
+W, B = np.meshgrid(w_values, b_values, indexing='ij')
+
+# Compute the cost surface
+Z = compute_cost_vectorized(x_train, y_train, W, B)
+
+# Get optimal values
+min_idx = np.argmin(Z)
+min_row, min_col = np.unravel_index(min_idx, Z.shape)
+best_w = w_values[min_row]
+best_b = b_values[min_col]
+min_cost = Z[min_row, min_col]
 # Print best parameters
 print(f"✅ Best w: {best_w:.2f}, Best b: {best_b:.2f}, Cost: {min_cost:.2f}")
 
@@ -121,3 +158,6 @@ budget = 5  # e.g., 5 billion VND
 predicted_area = predict_house_square(budget)
 print(
     f"Predicted area for {budget} billion VND: {predicted_area:.2f} m²")
+
+plt_stationary_fixed_point(x_train, y_train, best_w, best_b)
+soup_bowl_actual_cost(x_train, y_train, best_w, best_b)

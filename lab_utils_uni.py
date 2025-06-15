@@ -430,3 +430,97 @@ def plt_gradients(x_train, y_train, f_compute_cost, f_compute_gradient):
         Q, 0.9, 0.9, 2, r'$2 \frac{m}{s}$', labelpos='E', coordinates='figure')
     ax[1].set_xlabel("w")
     ax[1].set_ylabel("b")
+
+
+def plt_stationary_fixed_point(x_train, y_train, best_w, best_b):
+    # setup figure
+    fig = plt.figure(figsize=(9, 8))
+    fig.set_facecolor('#ffffff')
+    gs = GridSpec(2, 2, figure=fig)
+    ax0 = fig.add_subplot(gs[0, 0])
+    ax1 = fig.add_subplot(gs[0, 1])
+    ax2 = fig.add_subplot(gs[1, :], projection='3d')
+    ax = np.array([ax0, ax1, ax2])
+
+    # setup ranges
+    w_range = np.array([best_w - 0.5, best_w + 0.5])
+    b_range = np.array([best_b - 2.0, best_b + 2.0])
+    b_space = np.linspace(*b_range, 100)
+    w_space = np.linspace(*w_range, 100)
+
+    tmp_b, tmp_w = np.meshgrid(b_space, w_space)
+    z = np.zeros_like(tmp_b)
+    for i in range(tmp_w.shape[0]):
+        for j in range(tmp_w.shape[1]):
+            z[i, j] = compute_cost(x_train, y_train, tmp_w[i][j], tmp_b[i][j])
+            if z[i, j] == 0:
+                z[i, j] = 1e-6
+
+    # 1. LEFT: House prices
+    f_wb = np.dot(x_train, best_w) + best_b
+    mk_cost_lines(x_train, y_train, best_w, best_b, ax[0])
+    plt_house_x(x_train, y_train, f_wb=f_wb, ax=ax[0])
+
+    # 2. CENTER: Contour plot
+    ax[1].contour(tmp_w, tmp_b, np.log(z), levels=12,
+                  linewidths=2, alpha=0.7, colors=dlcolors)
+    ax[1].scatter(best_w, best_b, s=100, color=dlblue,
+                  zorder=10, label="Best w,b")
+    ax[1].hlines(best_b, ax[1].get_xlim()[0], best_w,
+                 lw=3, color=dlpurple, ls='dotted')
+    ax[1].vlines(best_w, ax[1].get_ylim()[0], best_b,
+                 lw=3, color=dlpurple, ls='dotted')
+    ax[1].set_title("Cost(w,b) contour")
+    ax[1].set_xlabel("w")
+    ax[1].set_ylabel("b")
+    ax[1].legend()
+
+    # 3. RIGHT: 3D surface
+    ax[2].plot_surface(tmp_w, tmp_b, z, cmap=dlcm, alpha=0.4, antialiased=True)
+    ax[2].plot_wireframe(tmp_w, tmp_b, z, color='k', alpha=0.1)
+    ax[2].scatter3D(best_w, best_b, compute_cost(x_train, y_train, best_w, best_b),
+                    color='red', marker='X', s=100, label='Best w,b')
+    ax[2].set_xlabel("w")
+    ax[2].set_ylabel("b")
+    ax[2].set_zlabel("J(w,b)")
+    ax[2].set_title("Cost surface [rotate to view]")
+    ax[2].view_init(30, -120)
+
+    plt.show()
+
+
+def soup_bowl_actual_cost(x_train, y_train, best_w, best_b):
+    """
+    Plot a real 3D cost surface based on compute_cost() over a range of w, b values.
+    """
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Set range centered around best_w and best_b
+    w = np.linspace(best_w - 0.5, best_w + 0.5, 100)
+    b = np.linspace(best_b - 2.0, best_b + 2.0, 100)
+    W, B = np.meshgrid(w, b)
+
+    # Compute cost surface using actual cost function
+    Z = np.zeros_like(W)
+    for i in range(W.shape[0]):
+        for j in range(W.shape[1]):
+            Z[i, j] = compute_cost(x_train, y_train, W[i, j], B[i, j])
+            if Z[i, j] == 0:
+                Z[i, j] = 1e-6  # prevent log(0) if needed later
+
+    # Plot surface
+    ax.plot_surface(W, B, Z, cmap="viridis", alpha=0.7)
+    ax.plot_wireframe(W, B, Z, color='k', alpha=0.1)
+
+    # Highlight optimal point
+    ax.scatter3D(best_w, best_b, compute_cost(x_train, y_train, best_w, best_b),
+                 color='red', s=240, marker='X', label="Minimum")
+
+    ax.set_xlabel("w")
+    ax.set_ylabel("b")
+    ax.set_zlabel("J(w, b)")
+    ax.set_title("Cost Surface J(w, b)")
+    ax.view_init(elev=30, azim=-120)
+    ax.legend()
+    plt.show()
